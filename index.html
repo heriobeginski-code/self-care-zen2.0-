@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZEN // Aurora Wellness Sanctuary</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Quicksand:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            background: #020406;
+            color: white;
+            font-family: 'Quicksand', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .holographic {
+            font-family: 'Syncopate', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            background: linear-gradient(90deg, #00ced1, #2979ff, #651fff, #00ced1);
+            background-size: 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: holo-flow 10s linear infinite;
+        }
+
+        @keyframes holo-flow { 0% { background-position: 0%; } 100% { background-position: 300%; } }
+
+        /* GEOMETRIC CARDS */
+        .ritual-tile {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            position: relative;
+            height: 220px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 24px;
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .ritual-tile:hover {
+            border-color: rgba(0, 206, 209, 0.6);
+            transform: translateY(-8px);
+            background: rgba(0, 206, 209, 0.05);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .ritual-tile.active {
+            border-color: #00ced1;
+            box-shadow: 0 0 30px rgba(0, 206, 209, 0.2);
+        }
+
+        /* PROCEDURAL PATTERNS */
+        .pattern {
+            position: absolute;
+            inset: 0;
+            opacity: 0.2;
+            transition: opacity 0.5s;
+            z-index: 0;
+        }
+        .pattern-dots { background-image: radial-gradient(#00ced1 1px, transparent 1px); background-size: 20px 20px; }
+        .pattern-lines { background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0, 206, 209, 0.1) 10px, rgba(0, 206, 209, 0.1) 11px); }
+        .pattern-grid { background-image: linear-gradient(rgba(0, 206, 209, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 206, 209, 0.1) 1px, transparent 1px); background-size: 30px 30px; }
+        .pattern-circles { background: radial-gradient(circle at 50% 50%, transparent 40%, rgba(0, 206, 209, 0.1) 41%, transparent 42%); background-size: 60px 60px; }
+
+        canvas#aurora {
+            position: fixed;
+            top: 0; left: 0; z-index: -1;
+            filter: blur(50px);
+        }
+
+        .lotus-anim { transition: transform 4s ease-in-out, opacity 1s; }
+        .breath-inhale { transform: scale(1.6); opacity: 1; }
+        .breath-exhale { transform: scale(0.8); opacity: 0.5; }
+
+        main::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+
+    <canvas id="aurora"></canvas>
+
+    <main class="relative z-10 h-screen w-full flex flex-col p-10 overflow-y-auto">
+        <header class="flex justify-between items-end mb-12">
+            <div>
+                <h1 class="holographic text-2xl font-bold">Zen Sanctuary</h1>
+                <p class="text-[10px] tracking-[0.4em] opacity-40 mt-2 uppercase">Core Ritual Satellite 05</p>
+            </div>
+            <div id="progress-bar" class="text-[10px] tracking-widest text-cyan-400 font-bold">PROGRESS: 0%</div>
+        </header>
+
+        <div class="grid grid-cols-1 xl:grid-cols-4 gap-8">
+            <div class="xl:col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="ritual-grid">
+                </div>
+
+            <div class="flex flex-col gap-6">
+                <div class="ritual-tile h-auto py-10 items-center justify-center text-center">
+                    <div id="lotus-container" class="lotus-anim mb-6">
+                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#00ced1" stroke-width="1.5">
+                            <path d="M12 22C12 22 20 18 20 12C20 6 12 2 12 2C12 2 4 6 4 12C4 18 12 22 12 22Z"/>
+                        </svg>
+                    </div>
+                    <p id="breath-status" class="text-[9px] tracking-[0.3em] uppercase mb-4 opacity-50">Idle</p>
+                    <button id="breath-btn" class="px-6 py-2 border border-cyan-500/30 rounded-full text-[10px] tracking-widest hover:bg-cyan-500/10 transition">START SESSION</button>
+                </div>
+
+                <div class="ritual-tile h-64 justify-start">
+                    <span class="text-[10px] tracking-widest opacity-50 mb-4 uppercase">Reflection</span>
+                    <textarea id="journal" class="w-full h-full bg-transparent border-none outline-none text-sm leading-relaxed text-cyan-100/80" placeholder="Type your thoughts..."></textarea>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const rituals = [
+            { id: 'guasha', label: 'Gua Sha', pattern: 'pattern-dots' },
+            { id: 'hair', label: 'Hair Care', pattern: 'pattern-lines' },
+            { id: 'nails', label: 'Clean Nails', pattern: 'pattern-grid' },
+            { id: 'night', label: 'Night Routine', pattern: 'pattern-circles' },
+            { id: 'journal', label: 'Journaling', pattern: 'pattern-dots' },
+            { id: 'breath', label: 'Breathing', pattern: 'pattern-lines' }
+        ];
+
+        let activeRituals = JSON.parse(localStorage.getItem('zen_rituals')) || [];
+        let auroraBaseSpeed = 0.002;
+        let auroraBoost = 0;
+
+        function initUI() {
+            const grid = document.getElementById('ritual-grid');
+            grid.innerHTML = '';
+            
+            rituals.forEach(r => {
+                const isActive = activeRituals.includes(r.id);
+                const tile = document.createElement('div');
+                tile.className = `ritual-tile ${isActive ? 'active' : ''}`;
+                
+                tile.innerHTML = `
+                    <div class="pattern ${r.pattern}"></div>
+                    <div class="relative z-10 flex justify-between items-center w-full">
+                        <span class="text-[10px] tracking-[0.2em] font-bold uppercase">${r.label}</span>
+                        <div class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-cyan-400 shadow-[0_0_10px_#00ced1]' : 'bg-white/10'}"></div>
+                    </div>
+                `;
+                
+                tile.onclick = () => toggleRitual(r.id);
+                grid.appendChild(tile);
+            });
+            updateProgress();
+        }
+
+        function toggleRitual(id) {
+            activeRituals.includes(id) ? 
+                activeRituals = activeRituals.filter(i => i !== id) : 
+                activeRituals.push(id);
+            localStorage.setItem('zen_rituals', JSON.stringify(activeRituals));
+            initUI();
+        }
+
+        function updateProgress() {
+            const val = (activeRituals.length / rituals.length);
+            document.getElementById('progress-bar').innerText = `PROGRESS: ${Math.round(val * 100)}%`;
+            window.parent.postMessage({ type: 'UPDATE_PROGRESS', appId: 'zen-05', value: val }, '*');
+        }
+
+        // --- AURORA BACKGROUND (CONSTANT) ---
+        const canvas = document.getElementById('aurora');
+        const ctx = canvas.getContext('2d');
+        let w, h, time = 0;
+
+        function resize() {
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
+        }
+
+        function animate() {
+            time += (auroraBaseSpeed + auroraBoost);
+            ctx.fillStyle = '#020406';
+            ctx.fillRect(0, 0, w, h);
+            
+            const layers = [
+                { color: '#00ced118', speed: 1, offset: 0 },
+                { color: '#2979ff18', speed: 0.8, offset: 2 },
+                { color: '#651fff18', speed: 1.2, offset: 4 }
+            ];
+
+            layers.forEach(l => {
+                ctx.beginPath();
+                const g = ctx.createLinearGradient(0,0,w,0);
+                g.addColorStop(0, 'transparent');
+                g.addColorStop(0.5, l.color);
+                g.addColorStop(1, 'transparent');
+                ctx.strokeStyle = g;
+                ctx.lineWidth = 300;
+                for(let x=0; x<w; x+=40) {
+                    const y = h/2 + Math.sin(x*0.001 + time*l.speed + l.offset)*180;
+                    ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            });
+            requestAnimationFrame(animate);
+        }
+
+        // --- BREATHING LOGIC ---
+        let breathInterval;
+        const breathBtn = document.getElementById('breath-btn');
+        const lotus = document.getElementById('lotus-container');
+        const status = document.getElementById('breath-status');
+
+        function startBreathing() {
+            let step = 0;
+            const cycle = () => {
+                const phases = [
+                    { msg: 'Inhale', class: 'breath-inhale', boost: 0.015 },
+                    { msg: 'Hold', class: 'breath-inhale', boost: 0.005 },
+                    { msg: 'Exhale', class: 'breath-exhale', boost: 0.002 },
+                    { msg: 'Hold', class: 'breath-exhale', boost: 0.002 }
+                ];
+                const p = phases[step % 4];
+                status.innerText = p.msg;
+                lotus.className = `lotus-anim mb-6 ${p.class}`;
+                auroraBoost = p.boost;
+                step++;
+            };
+            cycle();
+            breathInterval = setInterval(cycle, 4000);
+            breathBtn.innerText = "END SESSION";
+        }
+
+        breathBtn.addEventListener('click', () => {
+            if (breathInterval) {
+                clearInterval(breathInterval);
+                breathInterval = null;
+                status.innerText = "IDLE";
+                lotus.className = "lotus-anim mb-6";
+                auroraBoost = 0;
+                breathBtn.innerText = "START SESSION";
+            } else {
+                startBreathing();
+            }
+        });
+
+        window.addEventListener('resize', resize);
+        resize(); animate(); initUI();
+
+        const j = document.getElementById('journal');
+        j.value = localStorage.getItem('zen_journal') || '';
+        j.oninput = (e) => localStorage.setItem('zen_journal', e.target.value);
+    </script>
+</body>
+</html>
